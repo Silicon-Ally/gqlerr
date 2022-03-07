@@ -3,9 +3,9 @@ module github.com/Silicon-Ally/gqlerr
 go 1.17
 
 require (
-	github.com/99designs/gqlgen v0.15.1
+	github.com/99designs/gqlgen v0.17.1
 	github.com/google/go-cmp v0.5.7
-	github.com/vektah/gqlparser/v2 v2.2.0
+	github.com/vektah/gqlparser/v2 v2.4.0
 	go.uber.org/zap v1.21.0
 )
 
