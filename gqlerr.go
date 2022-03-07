@@ -10,6 +10,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // ErrorID represents a type of error specific to the domain of the caller of
@@ -78,9 +79,27 @@ func (e *Error) Error() string {
 		return ""
 	}
 
-	// We only write the code and message for now, the actual logger should log
-	// the fields.
-	return fmt.Sprintf("[%q] %s", e.code, e.msg)
+	err := e.err()
+	if err == nil {
+		// We only write the code and message for now, the actual logger should log
+		// the fields.
+		return fmt.Sprintf("[%q] %s", e.code, e.msg)
+	}
+	return fmt.Sprintf("[%q] %s: %v", e.code, e.msg, err)
+}
+
+func (e *Error) err() error {
+	for _, f := range e.fields {
+		if f.Key != "error" || f.Type != zapcore.ErrorType {
+			continue
+		}
+		errVal, ok := f.Interface.(error)
+		if !ok {
+			continue
+		}
+		return errVal
+	}
+	return nil
 }
 
 func (e *Error) toGQLError() *gqlerror.Error {

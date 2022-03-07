@@ -15,6 +15,18 @@ import (
 	"go.uber.org/zap/zaptest/observer"
 )
 
+func TestErr(t *testing.T) {
+	gErr := Internal(context.Background(), "some error",
+		zap.String("a_field", "test"),
+		zap.Int("another_field", 123),
+		zap.Error(randomError{}))
+
+	err := gErr.err()
+	if !errors.Is(err, randomError{}) {
+		t.Errorf("returned error was %v, not %v", err, randomError{})
+	}
+}
+
 func TestHelpers(t *testing.T) {
 	tests := []struct {
 		desc     string
