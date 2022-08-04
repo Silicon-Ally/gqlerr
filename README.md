@@ -1,7 +1,17 @@
+_This package was developed by [Silicon Ally](https://siliconally.org) while
+working on a project for  [Adventure Scientists](https://adventurescientists.org).
+Many thanks to Adventure Scientists for supporting [our open source
+mission](https://siliconally.org/policies/open-source/)!_
+
 # gqlerr
 
-`gqlerr` is a package for, well, handling GraphQL errors, in the same vein as
-our [Silicon-Ally/grpcerr](https://github.com/Silicon-Ally/grpcerr) repository.
+`gqlerr` is a package for handling errors in a Go/gqlgen-based GraphQL server.
+It integrates logging via *zap.Logger so that all errors are logged. Codes are
+modeled after
+[the gRPC error codes](https://pkg.go.dev/google.golang.org/grpc/codes).
+
+[![GoDoc](https://pkg.go.dev/badge/github.com/Silicon-Ally/gqlerr?status.svg)](https://pkg.go.dev/github.com/Silicon-Ally/gqlerr?tab=doc)
+[![CI Workflow](https://github.com/Silicon-Ally/gqlerr/actions/workflows/test.yml/badge.svg)](https://github.com/Silicon-Ally/gqlerr/actions?query=branch%3Amain)
 
 ## Usage
 

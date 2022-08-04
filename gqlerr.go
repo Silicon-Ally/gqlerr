@@ -1,3 +1,7 @@
+// Package gqlerr provides helpers for handling errors that occur in a Go
+// GraphQL server. It integrates logging via *zap.Logger so that all errors
+// are logged. Codes are modeled after:
+// https://pkg.go.dev/google.golang.org/grpc/codes
 package gqlerr
 
 import (
@@ -30,6 +34,9 @@ const (
 )
 
 var (
+	// Generally, things that could ostensibly be triggered by a client are
+	// warnings, to cut down on noise/pager fatigue. Errors are almost always
+	// programmer error or backend system failure.
 	defaultLevelForCode = map[codes.Code]logLevel{
 		codes.InvalidArgument:    warnLevel,
 		codes.NotFound:           warnLevel,
@@ -153,39 +160,49 @@ func (e *Error) clientMessage() string {
 }
 
 // WithMessage adds an error intended for clients to see, and returns the error
-// for chaining purposes.
+// for chaining purposes. It'll appear in the GraphQL response "errors" field,
+// see: https://spec.graphql.org/October2021/#sec-Errors
 func (e *Error) WithMessage(msg string) *Error {
 	e.clientMsg = msg
 	return e
 }
 
-// WithErrorID adds an error intended for client apps to use, and returns the
-// error for chaining purposes.
+// WithErrorID adds an error intended for client apps to use, and returns
+// the error for chaining purposes. It'll appear in the GraphQL response
+// "extensions" field, see:
+// https://spec.graphql.org/October2021/#sec-Response-Format
 func (e *Error) WithErrorID(errID ErrorID) *Error {
 	e.errorID = errID
 	return e
 }
 
+// AtDebug overrides the default level for the error and logs at DEBUG level.
 func (e *Error) AtDebug() *Error {
 	e.level = debugLevel
 	return e
 }
 
+// AtInfo overrides the default level for the error and logs at INFO level.
 func (e *Error) AtInfo() *Error {
 	e.level = infoLevel
 	return e
 }
 
+// AtWarn overrides the default level for the error and logs at WARN level.
 func (e *Error) AtWarn() *Error {
 	e.level = warnLevel
 	return e
 }
 
+// AtError overrides the default level for the error and logs at ERROR level.
 func (e *Error) AtError() *Error {
 	e.level = errorLevel
 	return e
 }
 
+// New returns an initialize error with the given code. The message and fields
+// are used for logging, and won't be visible to clients. For setting client-
+// visible response parameters, see WithErrorID and WithMessage
 func New(ctx context.Context, code codes.Code, msg string, fields ...zap.Field) *Error {
 	return &Error{
 		code:   code,
