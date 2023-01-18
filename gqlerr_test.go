@@ -3,6 +3,7 @@ package gqlerr
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/Silicon-Ally/gqlerr/codes"
@@ -117,7 +118,7 @@ func TestPresenter_ErrorOfWrongType(t *testing.T) {
 
 	gotLogs := logs.AllUntimed()
 	wantLogs := []observer.LoggedEntry{
-		observer.LoggedEntry{
+		{
 			Entry: zapcore.Entry{
 				Level:   zapcore.ErrorLevel,
 				Message: "received error that was not of type *gqlerr.Error",
@@ -170,7 +171,7 @@ func TestPresenter(t *testing.T) {
 
 	gotLogs := logs.AllUntimed()
 	wantLogs := []observer.LoggedEntry{
-		observer.LoggedEntry{
+		{
 			Entry: zapcore.Entry{
 				Level:   zapcore.ErrorLevel,
 				Message: "user entered a bad number of muffins",
@@ -210,4 +211,44 @@ func runPresenterWithError(t *testing.T, handlerErr error) (*gqlerror.Error, *ob
 
 	err := ErrorPresenter(logger)(context.Background(), handlerErr)
 	return err, logs
+}
+
+func TestRecoverFunc(t *testing.T) {
+
+	core, logs := observer.New(zap.LevelEnablerFunc(func(_ zapcore.Level) bool {
+		return true
+	}))
+	logger := zaptest.NewLogger(t,
+		zaptest.WrapOptions(
+			zap.WrapCore(func(zapcore.Core) zapcore.Core {
+				return core
+			}),
+		),
+	)
+
+	err := RecoverFunc(context.Background(), "Panic! At The Disco")
+	logError(logger, err.(*Error))
+	gotLogs := logs.AllUntimed()
+	wantLogs := []observer.LoggedEntry{
+		{
+			Entry: zapcore.Entry{
+				Level:   zapcore.DPanicLevel,
+				Message: "<stack trace>",
+			},
+			Context: []zapcore.Field{
+				{Key: "recover", Type: zapcore.StringType, String: "Panic! At The Disco"},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(wantLogs, gotLogs, cmpopts.IgnoreFields(zapcore.Entry{}, "Message")); diff != "" {
+		t.Errorf("unexpected logs written (-want +got)\n%s", diff)
+	}
+
+	if !strings.Contains(gotLogs[0].Entry.Message, "goroutine") {
+		t.Fatal("log message doesn't contain stack trace")
+	}
+	if !strings.Contains(gotLogs[0].Entry.Message, "runtime/debug.Stack()") {
+		t.Fatal("log message doesn't contain stack trace")
+	}
 }

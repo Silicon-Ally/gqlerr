@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/Silicon-Ally/gqlerr/codes"
@@ -31,6 +32,7 @@ const (
 	infoLevel
 	warnLevel
 	errorLevel
+	panicLevel
 )
 
 var (
@@ -200,6 +202,14 @@ func (e *Error) AtError() *Error {
 	return e
 }
 
+// AtPanic overrides the default level for the error and logs at PANIC level.
+// Note: This doesn't actually cause a panic when using a production zap logger,
+// since we use DPanic.
+func (e *Error) AtPanic() *Error {
+	e.level = panicLevel
+	return e
+}
+
 // New returns an initialize error with the given code. The message and fields
 // are used for logging, and won't be visible to clients. For setting client-
 // visible response parameters, see WithErrorID and WithMessage
@@ -248,6 +258,10 @@ func Unauthenticated(ctx context.Context, msg string, fields ...zap.Field) *Erro
 	return New(ctx, codes.Unauthenticated, msg, fields...)
 }
 
+func RecoverFunc(ctx context.Context, v any) error {
+	return Internal(ctx, string(debug.Stack()), zap.Any("recover", v)).AtPanic()
+}
+
 func ErrorPresenter(logger *zap.Logger) func(context.Context, error) *gqlerror.Error {
 	return func(ctx context.Context, err error) *gqlerror.Error {
 		if err == nil {
@@ -280,9 +294,15 @@ func logError(logger *zap.Logger, err *Error) {
 		logFn = logger.Warn
 	case errorLevel:
 		logFn = logger.Error
+	case panicLevel:
+		logFn = logger.DPanic
 	default:
 		// If something went wrong finding the log level, log at errorLevel.
 		logFn = logger.Error
+	}
+
+	if path := err.path.String(); path != "" {
+		err.fields = append([]zap.Field{zap.String("gql_path", err.path.String())}, err.fields...)
 	}
 
 	logFn(err.msg, err.fields...)
