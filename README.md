@@ -50,3 +50,7 @@ with the message given by `WithMessage`. By default, a generic message similar
 to `net/http`'s `StatusText(...)` function will be returned. A log message will
 also be written to the logger, at an appropriate log level for the error code
 if one is not explicitly supplied with `At{Debug,Info,Warn,Error}Level()`.
+
+## Contributing
+
+Contribution guidelines can be found [on our website](https://siliconally.org/oss/contributor-guidelines).
